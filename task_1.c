@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define THREADS 4
 #define COUNT 10000000
 
 int *array;
@@ -35,26 +34,30 @@ void setupArray() {
 }
 
 int main(int argc, char **argv) {
+    
+    int thread_count;
+    sscanf(argv[1], "%d", &thread_count);
+    
     pthread_mutex_init(&mutex, NULL);
     setupArray();
     
-    pthread_t *threads = (pthread_t *)malloc(THREADS * sizeof(pthread_t));
-    struct range *ranges = (struct range *)malloc(THREADS * sizeof(struct range));
+    pthread_t *threads = (pthread_t *)malloc(thread_count * sizeof(pthread_t));
+    struct range *ranges = (struct range *)malloc(thread_count * sizeof(struct range));
     
-    int step = COUNT / THREADS;
+    int step = COUNT / thread_count;
     
-    for (int i = 0; i < THREADS; i++) {
+    for (int i = 0; i < thread_count; i++) {
         ranges[i].begin = i * step;
-        ranges[i].end = (i + 1 < THREADS) ? (i + 1) * step : COUNT;
+        ranges[i].end = (i + 1 < thread_count) ? (i + 1) * step : COUNT;
         
         pthread_create(threads + i, NULL, &sum, ranges + i);
     }
     
-    for (int i = 0; i < THREADS; i++) {
+    for (int i = 0; i < thread_count; i++) {
         pthread_join(*(threads + i), NULL);
     }
     
-    printf("%d", result);
+    printf("%d\n", result);
     
     return 0;
 }
