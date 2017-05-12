@@ -2,20 +2,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define COUNT 10000000
-
 
 /// The idea is that first process divides the array in equal parts, send start and end of the part to each remaining process.
 /// Each other process counts the sum from start to end and send back to first process the result.
 /// First process sums up everything and prints out the result.
 
+int *cache;
+double result;
+
+int fact(int N) {
+    if (N == 0) return 1;
+    if (N == 1) return 1;
+    if (cache[N] != 0) return cache[N];
+    int result = fact(N - 1) * N;
+    cache[N] = result;
+    return result;
+}
+
 int main(int argc, char *argv[]) {
 
-    int *array = (int *)malloc(COUNT * sizeof(int));
-    for (int i = 0; i < COUNT; i++) {
-        array[i] = 1;
-    }
-
+    int COUNT;
+    sscanf(argv[1], "%d", &COUNT);
+    cache = (int *)calloc(COUNT + 1, sizeof(int));
+    result = 0;
+    
     MPI_Init(&argc, &argv);
 
     int idx;
@@ -55,15 +65,15 @@ int main(int argc, char *argv[]) {
             MPI_Send(range, 2, MPI_INT, i + 1, 0, MPI_COMM_WORLD);
         }
 
-        int result = 0;
+        double result = 0;
 
         for (int i = 0; i < workers; i ++) {
-            int current = 0;
-            MPI_Recv(&current, 1, MPI_INT, i + 1, 1, MPI_COMM_WORLD, NULL);
+            double current = 0;
+            MPI_Recv(&current, 1, MPI_DOUBLE, i + 1, 1, MPI_COMM_WORLD, NULL);
             result += current;
         }
 
-        printf("Finished: %d\n", result);
+        printf("Finished: %lf\n", result);
 
         MPI_Finalize();
 
@@ -74,12 +84,12 @@ int main(int argc, char *argv[]) {
 
     MPI_Recv(range, 2, MPI_INT, 0, 0, MPI_COMM_WORLD, NULL);
 
-    int current = 0;
+    double current = 0;
     for (int i = range[0]; i < range[1]; i++) {
-        current += array[i];
+        current += 1.0 / fact(i);
     }
-
-    MPI_Send(&current, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);
+    
+    MPI_Send(&current, 1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
     
     MPI_Finalize();
     
