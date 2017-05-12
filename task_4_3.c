@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define COUNT 10000000
-
 
 /// The idea is that first process divides the array in equal parts, send start and end of the part to each remaining process.
 /// Each other process counts the sum from start to end and send back to first process the result.
@@ -11,12 +9,29 @@
 
 /// To count effeciency, first process will count the sum sequently, and send the time to second. Second works as first process in previous task.
 
+int *cache;
+double result;
+
+int fact(int N) {
+    if (N == 0) return 1;
+    if (N == 1) return 1;
+    if (cache[N] != 0) return cache[N];
+    int previous = fact(N - 1);
+    int result = previous * N;
+    if (result / N != previous) {
+        printf("Fatal error! Integer overflow!\n");
+        exit(1);
+    }
+    cache[N] = result;
+    return result;
+}
+
 int main(int argc, char *argv[]) {
 
-    int *array = (int *)malloc(COUNT * sizeof(int));
-    for (int i = 0; i < COUNT; i++) {
-        array[i] = 1;
-    }
+    int COUNT;
+    sscanf(argv[1], "%d", &COUNT);
+    cache = (int *)calloc(COUNT + 1, sizeof(int));
+    result = 0;
 
     MPI_Init(&argc, &argv);
 
@@ -36,17 +51,17 @@ int main(int argc, char *argv[]) {
 
     /// First. Will count sequently and send time to second process.
     if (idx == 0) {
-        int result = 0;
+        double res = 0;
 
         double startTime = MPI_Wtime();
 
         for (int i = 0; i < COUNT; i++) {
-            result += array[i];
+            res += 1.0 / fact(i);
         }
 
         double endTime = MPI_Wtime();
 
-        printf("Finished consequently: %d\n", result);
+        printf("Finished consequently: %lg\n", res);
 
         double time = endTime - startTime;
 
@@ -65,10 +80,16 @@ int main(int argc, char *argv[]) {
 
     /// Second process, the main. Will divide the array into subarrays and sum up.
     if (idx == 1) {
+        
+        double consTime;
+        
+        MPI_Recv(&consTime, 1, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD, NULL);
+        
+        printf("Clearing cache...\n");
+        cache = (int *)calloc(COUNT + 1, sizeof(int));
 
         int workers = n - 2;
         int delta = COUNT / workers;
-
 
         double startTime = MPI_Wtime();
 
@@ -83,21 +104,17 @@ int main(int argc, char *argv[]) {
             MPI_Send(range, 2, MPI_INT, i + 2, 0, MPI_COMM_WORLD);
         }
 
-        int result = 0;
+        double result = 0;
 
         for (int i = 0; i < workers; i ++) {
-            int current = 0;
-            MPI_Recv(&current, 1, MPI_INT, i + 2, 1, MPI_COMM_WORLD, NULL);
+            double current = 0;
+            MPI_Recv(&current, 1, MPI_DOUBLE, i + 2, 1, MPI_COMM_WORLD, NULL);
             result += current;
         }
 
         double endTime = MPI_Wtime();
 
-        printf("Finished concurrent: %d\n", result);
-
-        double consTime;
-
-        MPI_Recv(&consTime, 1, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD, NULL);
+        printf("Finished concurrent: %lg\n", result);
 
         double concTime = endTime - startTime;
 
@@ -115,12 +132,12 @@ int main(int argc, char *argv[]) {
 
     MPI_Recv(range, 2, MPI_INT, 1, 0, MPI_COMM_WORLD, NULL);
 
-    int current = 0;
+    double current = 0;
     for (int i = range[0]; i < range[1]; i++) {
-        current += array[i];
+        current += 1.0 / fact(i);
     }
 
-    MPI_Send(&current, 1, MPI_INT, 1, 1, MPI_COMM_WORLD);
+    MPI_Send(&current, 1, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD);
     
     MPI_Finalize();
     
