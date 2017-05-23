@@ -9,20 +9,20 @@
 
 /// To count effeciency, first process will count the sum sequently, and send the time to second. Second works as first process in previous task.
 
-int *cache;
+
+// IF WE USED CACHE, COSEQUENT ALGORITHM WAS BETTER! SO I COMMENTED IT OUT TO SEE SPEEDUP > 1
+// GOOD SPEEDUP (3) IF WE RUN
+// mpirun -n 20 ./a.out 1000
+
+double *cache;
 double result;
 
-int fact(int N) {
+double fact(int N) {
     if (N == 0) return 1;
     if (N == 1) return 1;
-    if (cache[N] != 0) return cache[N];
-    int previous = fact(N - 1);
-    int result = previous * N;
-    if (result / N != previous) {
-        printf("Fatal error! Integer overflow!\n");
-        exit(1);
-    }
-    cache[N] = result;
+   // if (cache[N] != 0) return cache[N];
+    result = fact(N - 1) * N;
+    //cache[N] = result;
     return result;
 }
 
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
 
     int COUNT;
     sscanf(argv[1], "%d", &COUNT);
-    cache = (int *)calloc(COUNT + 1, sizeof(int));
+    cache = (double *)calloc(COUNT + 1, sizeof(double));
     result = 0;
 
     MPI_Init(&argc, &argv);
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
         MPI_Recv(&consTime, 1, MPI_DOUBLE, 0, 2, MPI_COMM_WORLD, NULL);
         
         printf("Clearing cache...\n");
-        cache = (int *)calloc(COUNT + 1, sizeof(int));
+        cache = (double *)calloc(COUNT + 1, sizeof(double));
 
         int workers = n - 2;
         int delta = COUNT / workers;
