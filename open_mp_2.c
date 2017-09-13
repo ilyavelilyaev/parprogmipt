@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
         double threadSum = 0;
 
             // Dividing for cycle into chunks and paralleling in threads.
-        #pragma omp for
+        #pragma omp for nowait
         for (int i = 1; i <= N; i++) {
                 // Increasing thread private sum by new element.
             threadSum += (1.0 / i);
