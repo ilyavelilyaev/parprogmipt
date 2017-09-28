@@ -13,3 +13,5 @@ Install open-mpi package from homebrew `$ brew install open-mpi`
 3. Compile with command `$ /usr/local/Cellar/llvm/5.0.0/bin/clang -fopenmp -I /usr/local/Cellar/llvm/5.0.0/include/ -L /usr/local/Cellar/llvm/5.0.0/lib FILENAME`
 4. Run `$ ./a.out`
 
+
+If you receive error while compiling `missing stdlib.h`, install xcode tools. `$ xcode-select --install`
